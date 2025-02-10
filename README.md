@@ -1,94 +1,92 @@
-# Obsidian Sample Plugin
+# Gemini Copilot Plugin for Obsidian
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+[![GitHub Release](https://img.shields.io/github/v/release/ikpark09/obsidian-gemini-copilot?style=for-the-badge)](https://github.com/ikpark09/obsidian-gemini-copilot/releases)
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+This Obsidian plugin integrates with Google's Gemini API to provide AI-powered writing assistance directly within your Obsidian vault.  Boost your note-taking workflow with features like generating note titles, summarizing text, and expanding on your ideas, all powered by Gemini.
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+## Features
 
-## First time developing plugins?
+*   **Generate Note Titles:**  Let Gemini suggest relevant and informative titles for your notes based on their content. Titles are generated in the `YYYY-MM-DD : Title` format and are sanitized to be filename-friendly.
+*   **Summarize Text:**  Quickly condense selected text within your notes into concise summaries.
+*   **Expand Text:**  Need to elaborate on a point? Select text and use Gemini to expand on your writing, adding detail and information.
+*   **Confirmation Modal:** Review and confirm Gemini's suggestions before applying them to your notes. This gives you control over the AI's output.
+*   **Interaction Log:**  Keep track of your interactions with the Gemini API. The plugin logs each request, including the model used, input prompt, output response, and any errors. This log is viewable in the plugin settings.
+*   **Filename-Friendly Titles:**  Generated note titles are automatically sanitized to remove special characters that are not allowed in filenames, ensuring smooth file renaming within Obsidian.
+*   **Date-Prefixed Titles:**  Note titles are generated and saved in the `YYYY-MM-DD : Title` format, automatically prepending the creation date of the note.
 
-Quick starting guide for new plugin devs:
+## Prerequisites
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+1.  **Gemini API Key:** You need a valid API key from Google AI Studio. You can obtain one for free (within usage limits) at [https://makersuite.google.com/app/apikey](https://makersuite.google.com/app/apikey).
+2.  **Obsidian v0.9.12 or higher:** This plugin is designed to work with Obsidian versions 0.9.12 and above.
 
-## Releasing new releases
+## Installation
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+### From within Obsidian
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+1.  Open Obsidian Settings (`Ctrl+,` or `Cmd+,`).
+2.  Go to **Community plugins**.
+3.  Click **Browse** to search community plugins.
+4.  Search for "Gemini Copilot".
+5.  Click **Install**.
+6.  After installation, go to the **Installed plugins** tab and enable the "Gemini Copilot" plugin.
 
-## Adding your plugin to the community plugin list
+### Manual Installation
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+1.  Download the latest release from [Releases](https://github.com/ikpark09/obsidian-gemini-copilot/releases) page.
+2.  Extract the downloaded ZIP file to your Obsidian vault's plugins folder: `<your_vault>/.obsidian/plugins/obsidian-gemini-copilot`.
+    *   **Note:** Make sure to create the `obsidian-gemini-copilot` folder if it doesn't exist.
+3.  In Obsidian, go to **Settings** -> **Community plugins** and enable the "Gemini Copilot" plugin.
 
-## How to use
+## Usage
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+### Generate Note Title
 
-## Manually installing the plugin
+1.  Open the note for which you want to generate a title.
+2.  Open the Command Palette (`Ctrl+P` or `Cmd+P`).
+3.  Type "Gemini: Generate Note Title" or "Generate Note Title with Gemini" and select the command.
+4.  A modal will appear showing the title suggested by Gemini in `YYYY-MM-DD : Title` format.
+5.  Click **Confirm** to apply the title and rename the note, or click **Cancel** to discard the suggestion.
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+### Summarize Text
 
-## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
+1.  Select the text you want to summarize within your note.
+2.  Open the Command Palette (`Ctrl+P` or `Cmd+P`).
+3.  Type "Gemini: Summarize Selected Text" or "Summarize Selected Text with Gemini" and select the command.
+4.  A modal will appear showing the summary generated by Gemini.
+5.  Click **Confirm** to replace the selected text with the summary, or click **Cancel** to discard the suggestion.
 
-## Funding URL
+### Expand Text
 
-You can include funding URLs where people who use your plugin can financially support it.
+1.  Select the text you want to expand upon in your note.
+2.  Open the Command Palette (`Ctrl+P` or `Cmd+P`).
+3.  Type "Gemini: Expand Selected Text" or "Expand Selected Text with Gemini" and select the command.
+4.  A modal will appear showing the expanded text generated by Gemini.
+5.  Click **Confirm** to append the expanded text to your selection, or click **Cancel** to discard the suggestion.
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+## Settings
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
-```
+Access the plugin settings in Obsidian Settings -> Community plugins -> Gemini Copilot.
 
-If you have multiple URLs, you can also do:
+*   **Gemini API Key:** Enter your Gemini API key obtained from Google AI Studio. This is required for the plugin to function.
+*   **Gemini Model:** Choose the Gemini model you want to use for API calls. Available models are listed in the dropdown.
+*   **Gemini Interaction Log:** This section displays a history of your interactions with the Gemini API. It shows the timestamp, model used, input prompt, output response (truncated), and any errors that occurred. This log can be helpful for debugging or reviewing your usage.
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
-```
+## Disclaimer
 
-## API Documentation
+*   This plugin utilizes the Google Gemini API. Please be aware of Google's API usage terms and conditions, including any potential costs associated with API usage beyond free limits.
+*   The accuracy and relevance of the generated content depend on the Gemini API and the quality of your note content. Always review and edit the AI-generated output to ensure it meets your needs.
+*   As with any AI-powered tool, results may vary.
 
-See https://github.com/obsidianmd/obsidian-api
+## Support and Contribution
+
+For bug reports, feature requests, or general questions, please visit the [GitHub repository](https://github.com/ikpark09/obsidian-gemini-copilot).
+
+Contributions are welcome! Feel free to fork the repository, make changes, and submit pull requests.
+
+## License
+
+[MIT License](LICENSE) (You can add your license file and update this section accordingly)
+
+---
+
+**Enjoy using Gemini Copilot!**

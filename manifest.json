@@ -3,7 +3,7 @@
 	"name": "gemini-copilot",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Gemini API를 활용한 Obsidian 코파일럿 플러그인입니다.",
+	"description": "Obsidian copilot plugin that leverages the Gemini API. Provides note title generation, summary, and tag generation.",
 	"author": "AndyPark",
 	"isDesktopOnly": false,
 	"main": "main.js"
