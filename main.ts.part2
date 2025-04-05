@@ -1,0 +1,451 @@
+열려있는 파일이 없습니다.');
+                    return;
+                }
+
+                const content = editor.getValue();
+                if (!content) {
+                    new Notice('문서 내용이 비어있습니다.');
+                    return;
+                }
+
+                new Notice('관련 문서를 찾는 중입니다...');
+                const relatedDocs = await this.findRelatedDocuments(view.file, content);
+                
+                if (relatedDocs.length === 0) {
+                    new Notice('관련 문서를 찾지 못했습니다.');
+                    return;
+                }
+
+                new RelatedDocumentsModal(this.app, relatedDocs, this).open();
+            }
+        });
+
+        this.addSettingTab(new GeminiCopilotSettingTab(this.app, this));
+    }
+
+    onunload() {
+        this.genAI = null;
+    }
+
+    async loadSettings() {
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    }
+
+    async saveSettings() {
+        await this.saveData(this.settings);
+        this.initializeGeminiAPI();
+    }
+
+    private initializeGeminiAPI() {
+        if (this.settings.geminiApiKey) {
+            this.genAI = new GoogleGenerativeAI(this.settings.geminiApiKey);
+        } else {
+            this.genAI = null;
+            console.warn('Gemini API Key is not set. Plugin features will be disabled.');
+        }
+    }
+
+    private async generateContent(prompt: string): Promise<{ text: string | null }> {
+        if (!this.genAI) {
+            new Notice('Gemini API Key is not configured.');
+            return { text: null };
+        }
+
+        let responseText: string | null = null;
+        let logEntry: GeminiLogEntry = {
+            timestamp: new Date().toISOString(),
+            model: this.settings.geminiModel,
+            inputPrompt: prompt,
+            outputResponse: null,
+            inputTokens: undefined,
+            outputTokens: undefined,
+            error: undefined
+        };
+
+        try {
+            const model = this.genAI.getGenerativeModel({ model: this.settings.geminiModel });
+            const result = await model.generateContent(prompt);
+            responseText = result.response.text();
+            logEntry.outputResponse = responseText;
+            this.logGeminiInteraction(logEntry);
+            return { text: responseText };
+
+        } catch (error: any) {
+            console.error('Gemini API Error:', error);
+            logEntry.error = error.message;
+            this.logGeminiInteraction(logEntry);
+            new Notice('Gemini API call failed. See console for details.');
+            return { text: null };
+        }
+    }
+
+    private logGeminiInteraction(logEntry: GeminiLogEntry) {
+        this.settings.logHistory.push(logEntry);
+        this.saveSettings();
+        console.log("Gemini Interaction Logged:", logEntry);
+    }
+
+    sanitizeFilename(filename: string): string {
+        const invalidCharsRegex = /[*"\\/<>:\|?]/g;
+        return filename.replace(invalidCharsRegex, '_');
+    }
+
+    async generateNoteTitle(content: string, currentTitle: string | undefined): Promise<string | null> {
+        let prompt = this.settings.promptTemplates.generateTitle;
+        
+        // 변수 교체
+        prompt = prompt.replace('{{content}}', content);
+        prompt = prompt.replace('{{currentTitle}}', currentTitle ? ` using current title: ${currentTitle}` : '');
+        
+        const response = await this.generateContent(prompt);
+        return response.text;
+    }
+
+    async summarizeText(text: string): Promise<string | null> {
+        let prompt = this.settings.promptTemplates.summarizeText;
+        
+        // 변수 교체
+        prompt = prompt.replace('{{content}}', text);
+        
+        const response = await this.generateContent(prompt);
+        return response.text;
+    }
+
+    async generateAdditionalText(text: string): Promise<string | null> {
+        let prompt = this.settings.promptTemplates.expandText;
+        
+        // 변수 교체
+        prompt = prompt.replace('{{content}}', text);
+        
+        const response = await this.generateContent(prompt);
+        return response.text;
+    }
+
+    async generateHashtags(text: string): Promise<string | null> {
+        let prompt = this.settings.promptTemplates.generateHashtags;
+        
+        // 변수 교체
+        prompt = prompt.replace('{{content}}', text);
+        
+        const response = await this.generateContent(prompt);
+        return response.text;
+    }
+
+    // 지식 그래프 생성 메서드
+    async generateKnowledgeGraph(): Promise<void> {
+        const markdownFiles = this.app.vault.getMarkdownFiles();
+        
+        if (markdownFiles.length === 0) {
+            new Notice('분석할 마크다운 파일이 없습니다.');
+            return;
+        }
+
+        const totalFiles = markdownFiles.length;
+        let processedFiles = 0;
+        const relations: DocumentRelation[] = [];
+
+        // 각 파일을 처리
+        for (const sourceFile of markdownFiles) {
+            try {
+                const sourceContent = await this.app.vault.read(sourceFile);
+                if (!sourceContent.trim()) continue; // 빈 파일 건너뛰기
+
+                // 관련 문서 찾기
+                const relatedDocs = await this.findRelatedDocuments(sourceFile, sourceContent);
+                relations.push(...relatedDocs);
+
+                // 진행 상황 업데이트
+                processedFiles++;
+                if (processedFiles % 10 === 0 || processedFiles === totalFiles) {
+                    new Notice(`지식 그래프 분석 중: ${processedFiles}/${totalFiles} 파일 처리됨`);
+                }
+            } catch (error) {
+                console.error(`파일 ${sourceFile.path} 처리 중 오류 발생:`, error);
+            }
+        }
+
+        // 자동으로 링크 추가하기 (설정에서 활성화된 경우)
+        if (this.settings.knowledgeGraphSettings.autoAddLinks) {
+            await this.addWikiLinksToDocuments(relations);
+        }
+
+        new Notice(`지식 그래프 생성 완료: 총 ${relations.length}개의 관계 발견`);
+        
+        // 분석 결과 요약 표시
+        new KnowledgeGraphSummaryModal(this.app, relations).open();
+    }
+
+    // 관련 문서 찾기
+    async findRelatedDocuments(sourceFile: TFile, sourceContent: string): Promise<DocumentRelation[]> {
+        const markdownFiles = this.app.vault.getMarkdownFiles();
+        const relations: DocumentRelation[] = [];
+        
+        // 소스 파일 자신은 제외
+        const otherFiles = markdownFiles.filter(file => file.path !== sourceFile.path);
+        
+        // 소스 문서의 핵심 개념 추출
+        const sourceConcepts = await this.extractCoreConcepts(sourceContent);
+        if (!sourceConcepts) return relations;
+
+        // 각 파일과 비교
+        for (const targetFile of otherFiles) {
+            try {
+                const targetContent = await this.app.vault.read(targetFile);
+                if (!targetContent.trim()) continue; // 빈 파일 건너뛰기
+
+                // 타겟 문서의 핵심 개념 추출
+                const targetConcepts = await this.extractCoreConcepts(targetContent);
+                if (!targetConcepts) continue;
+
+                // 두 문서 간의 관계 분석
+                const analysisResult = await this.analyzeDocumentRelation(
+                    sourceFile.basename, 
+                    sourceConcepts,
+                    targetFile.basename, 
+                    targetConcepts
+                );
+
+                if (analysisResult && 
+                    analysisResult.similarityScore >= this.settings.knowledgeGraphSettings.minSimilarityScore) {
+                    relations.push({
+                        sourceFile: sourceFile,
+                        targetFile: targetFile,
+                        similarityScore: analysisResult.similarityScore,
+                        extractedContext: analysisResult.context
+                    });
+                }
+            } catch (error) {
+                console.error(`파일 ${targetFile.path} 비교 중 오류 발생:`, error);
+            }
+        }
+
+        // 유사도 점수에 따라 정렬
+        relations.sort((a, b) => b.similarityScore - a.similarityScore);
+        
+        // 최대 링크 수 제한
+        return relations.slice(0, this.settings.knowledgeGraphSettings.maxLinksPerDocument);
+    }
+
+    // 문서에서 핵심 개념 추출
+    async extractCoreConcepts(content: string): Promise<string | null> {
+        let prompt = this.settings.promptTemplates.extractCoreConcepts;
+        
+        // 변수 교체
+        prompt = prompt.replace('{{content}}', content.substring(0, 2000) + (content.length > 2000 ? '...(이하 생략)' : ''));
+        
+        const response = await this.generateContent(prompt);
+        if (!response.text) return null;
+
+        try {
+            // JSON 형식 파싱
+            const jsonMatch = response.text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const conceptsData = JSON.parse(jsonMatch[0]);
+                return conceptsData.concepts.join(', ');
+            }
+            return response.text;
+        } catch (error) {
+            console.error('핵심 개념 추출 결과 파싱 오류:', error);
+            return response.text; // 파싱 실패 시 원본 텍스트 반환
+        }
+    }
+
+    // 두 문서 간의 관계 분석
+    async analyzeDocumentRelation(
+        sourceTitle: string, 
+        sourceConcepts: string,
+        targetTitle: string, 
+        targetConcepts: string
+    ): Promise<{ similarityScore: number, context: string } | null> {
+        let prompt = this.settings.promptTemplates.analyzeDocumentRelation;
+        
+        // 변수 교체
+        prompt = prompt.replace('{{sourceTitle}}', sourceTitle);
+        prompt = prompt.replace('{{sourceConcepts}}', sourceConcepts);
+        prompt = prompt.replace('{{targetTitle}}', targetTitle);
+        prompt = prompt.replace('{{targetConcepts}}', targetConcepts);
+
+        const response = await this.generateContent(prompt);
+        if (!response.text) return null;
+
+        try {
+            // JSON 형식 파싱
+            const jsonMatch = response.text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                return JSON.parse(jsonMatch[0]);
+            }
+            return null;
+        } catch (error) {
+            console.error('문서 관계 분석 결과 파싱 오류:', error);
+            return null;
+        }
+    }
+
+    // 위키링크 추가
+    async addWikiLinksToDocuments(relations: DocumentRelation[]): Promise<void> {
+        const processedFiles = new Set<string>();
+        
+        for (const relation of relations) {
+            try {
+                // 이미 처리한 파일은 건너뛰기
+                if (processedFiles.has(relation.sourceFile.path)) continue;
+                
+                // 현재 문서 내용 읽기
+                const content = await this.app.vault.read(relation.sourceFile);
+                
+                // 관련 문서들 그룹화
+                const relatedFiles = relations
+                    .filter(r => r.sourceFile.path === relation.sourceFile.path)
+                    .sort((a, b) => b.similarityScore - a.similarityScore)
+                    .slice(0, this.settings.knowledgeGraphSettings.maxLinksPerDocument);
+                
+                if (relatedFiles.length === 0) continue;
+                
+                // 관련 문서 목록 생성
+                let relatedLinksSection = '\n\n## 관련 문서\n';
+                for (const rel of relatedFiles) {
+                    const linkText = `- [[${rel.targetFile.basename}]] - ${rel.extractedContext}\n`;
+                    relatedLinksSection += linkText;
+                }
+                
+                // 이미 '관련 문서' 섹션이 있는지 확인
+                if (content.includes('## 관련 문서')) {
+                    // 기존 관련 문서 섹션 업데이트는 복잡할 수 있으므로 건너뛰기
+                    continue;
+                }
+                
+                // 새 내용 작성
+                const newContent = content + relatedLinksSection;
+                
+                // 파일 업데이트
+                await this.app.vault.modify(relation.sourceFile, newContent);
+                processedFiles.add(relation.sourceFile.path);
+            } catch (error) {
+                console.error(`파일 ${relation.sourceFile.path}에 링크 추가 중 오류 발생:`, error);
+            }
+        }
+        
+        new Notice(`${processedFiles.size}개 문서에 관련 링크가 추가되었습니다.`);
+    }
+}
+
+class RelatedDocumentsModal extends Modal {
+    relatedDocs: DocumentRelation[];
+    plugin: GeminiCopilotPlugin;
+
+    constructor(app: App, relatedDocs: DocumentRelation[], plugin: GeminiCopilotPlugin) {
+        super(app);
+        this.relatedDocs = relatedDocs;
+        this.plugin = plugin;
+    }
+
+    onOpen() {
+        const { contentEl } = this;
+
+        contentEl.createEl('h3', { text: '관련 문서' });
+        contentEl.createEl('p', { text: '현재 문서와 관련성이 높은 다른 문서입니다.' });
+
+        if (this.relatedDocs.length === 0) {
+            contentEl.createEl('p', { text: '관련 문서를 찾지 못했습니다.', attr: { style: 'color: var(--text-muted);' } });
+        } else {
+            const relatedList = contentEl.createEl('ul', { cls: 'related-document-list' });
+
+            this.relatedDocs.forEach(relation => {
+                const listItem = relatedList.createEl('li', { cls: 'related-document-item' });
+                listItem.style.margin = '8px 0';
+                listItem.style.padding = '8px';
+                listItem.style.borderRadius = '5px';
+                listItem.style.backgroundColor = 'var(--background-secondary)';
+
+                const titleEl = listItem.createEl('h4', { 
+                    text: relation.targetFile.basename,
+                    attr: { style: 'margin: 0 0 4px; cursor: pointer; color: var(--text-accent);' }
+                });
+                
+                // 문서 클릭 시 해당 문서 열기
+                titleEl.addEventListener('click', async () => {
+                    await this.app.workspace.getLeaf().openFile(relation.targetFile);
+                    this.close();
+                });
+
+                // 유사도 점수 표시
+                const scoreEl = listItem.createEl('div', { 
+                    text: `유사도: ${(relation.similarityScore * 100).toFixed(1)}%`,
+                    attr: { style: 'font-size: 0.8em; color: var(--text-muted);' }
+                });
+
+                // 관계 컨텍스트 표시
+                const contextEl = listItem.createEl('div', { text: relation.extractedContext });
+
+                // 위키링크 추가 버튼
+                const addLinkButton = listItem.createEl('button', { 
+                    text: '위키링크 추가',
+                    attr: {
+                        style: 'font-size: 0.8em; margin-top: 8px;'
+                    }
+                });
+                addLinkButton.addEventListener('click', async () => {
+                    await this.addWikiLink(relation);
+                });
+            });
+        }
+
+        const buttonContainer = contentEl.createEl('div', { cls: 'modal-button-container' });
+        buttonContainer.style.marginTop = '16px';
+        const closeButton = buttonContainer.createEl('button', { text: '닫기' });
+        closeButton.addEventListener('click', () => this.close());
+    }
+
+    onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
+    }
+
+    async addWikiLink(relation: DocumentRelation) {
+        try {
+            // 현재 활성화된 파일 가져오기
+            const currentFile = this.app.workspace.getActiveFile();
+            if (!currentFile) {
+                new Notice('현재 열려있는 파일이 없습니다.');
+                return;
+            }
+
+            // 현재 문서 내용 읽기
+            const content = await this.app.vault.read(currentFile);
+            
+            // 관련 문서 링크 생성
+            const wikiLink = `[[${relation.targetFile.basename}]]`;
+            const linkWithContext = `- ${wikiLink} - ${relation.extractedContext}`;
+            
+            // 이미 '관련 문서' 섹션이 있는지 확인
+            if (content.includes('## 관련 문서')) {
+                // 정규 표현식을 사용하여 '관련 문서' 섹션 찾기
+                const sectionRegex = /## 관련 문서\n([\s\S]*?)(?=\n##|$)/;
+                const match = content.match(sectionRegex);
+                
+                if (match) {
+                    // 이미 같은 링크가 있는지 확인
+                    if (match[1].includes(wikiLink)) {
+                        new Notice('이미 이 문서에 대한 링크가 존재합니다.');
+                        return;
+                    }
+                    
+                    // 섹션에 링크 추가
+                    const updatedSection = match[0] + '\n' + linkWithContext;
+                    const newContent = content.replace(sectionRegex, updatedSection);
+                    
+                    await this.app.vault.modify(currentFile, newContent);
+                    new Notice(`${relation.targetFile.basename}에 대한 링크가 추가되었습니다.`);
+                }
+            } else {
+                // 관련 문서 섹션 추가
+                const newContent = content + '\n\n## 관련 문서\n' + linkWithContext;
+                await this.app.vault.modify(currentFile, newContent);
+                new Notice(`${relation.targetFile.basename}에 대한 링크가 추가되었습니다.`);
+            }
+        } catch (error) {
+            console.error('위키링크 추가 중 오류 발생:', error);
+            new Notice('위키링크 추가 중 오류가 발생했습니다.');
+        }
+    }
+}
