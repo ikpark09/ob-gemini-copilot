@@ -1,9 +1,9 @@
 {
-	"id": "obsidian-gemini-copilot",
+	"id": "gemini-copilot",
 	"name": "Gemini Copilot",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Obsidian plugin that integrates with Google's Gemini API to provide AI-powered writing assistance directly within your vault.",
+	"description": "Integrates with Google's Gemini API to provide AI-powered writing assistance directly within your vault.",
 	"author": "ikpark09",
 	"authorUrl": "https://github.com/ikpark09",
 	"fundingUrl": "",
