@@ -2,80 +2,164 @@
 
 [![GitHub Release](https://img.shields.io/github/v/release/ikpark09/obsidian-gemini-copilot?style=for-the-badge)](https://github.com/ikpark09/obsidian-gemini-copilot/releases)
 
-This Obsidian plugin integrates with Google's Gemini API to provide AI-powered writing assistance directly within your Obsidian vault.  Boost your note-taking workflow with features like generating note titles, summarizing text, and expanding on your ideas, all powered by Gemini.
+This Obsidian plugin integrates with Google's Gemini API to provide AI-powered writing assistance directly within your Obsidian vault. Boost your note-taking workflow with features like generating note titles, summarizing text, expanding on your ideas, generating hashtags, and creating knowledge graphs, all powered by Gemini.
 
 ## Features
 
-*   **Generate Note Titles:**  Let Gemini suggest relevant and informative titles for your notes based on their content. Titles are generated in the `YYYY-MM-DD : Title` format and are sanitized to be filename-friendly.
-*   **Summarize Text:**  Quickly condense selected text within your notes into concise summaries.
-*   **Expand Text:**  Need to elaborate on a point? Select text and use Gemini to expand on your writing, adding detail and information.
-*   **Confirmation Modal:** Review and confirm Gemini's suggestions before applying them to your notes. This gives you control over the AI's output.
-*   **Interaction Log:**  Keep track of your interactions with the Gemini API. The plugin logs each request, including the model used, input prompt, output response, and any errors. This log is viewable in the plugin settings.
-*   **Filename-Friendly Titles:**  Generated note titles are automatically sanitized to remove special characters that are not allowed in filenames, ensuring smooth file renaming within Obsidian.
-*   **Date-Prefixed Titles:**  Note titles are generated and saved in the `YYYY-MM-DD : Title` format, automatically prepending the creation date of the note.
+* **Generate Note Titles:** Let Gemini suggest relevant and informative titles for your notes based on their content. Titles are generated in the `YYYY-MM-DD : Title` format and are sanitized to be filename-friendly.
+* **Summarize Text:** Quickly condense selected text within your notes into concise summaries.
+* **Expand Text:** Need to elaborate on a point? Select text and use Gemini to expand on your writing, adding detail and information.
+* **Generate Hashtags:** Automatically generate relevant hashtags (#태그) for your notes based on their content.
+* **Knowledge Graph:** Analyze relationships between your notes and create automatic links between related documents.
+* **Custom Prompts:** Create and save your own custom prompts to use with Gemini.
+* **Customizable Templates:** Customize prompt templates for all plugin features to tailor AI responses to your needs.
+* **Confirmation Modal:** Review and confirm Gemini's suggestions before applying them to your notes. This gives you control over the AI's output.
+* **Interaction Log:** Keep track of your interactions with the Gemini API. The plugin logs each request, including the model used, input prompt, output response, and any errors.
+* **Quick Access Menu:** Access all plugin features from a dedicated ribbon icon menu.
 
 ## Prerequisites
 
-1.  **Gemini API Key:** You need a valid API key from Google AI Studio. You can obtain one for free (within usage limits) at [https://makersuite.google.com/app/apikey](https://makersuite.google.com/app/apikey).
-2.  **Obsidian v0.9.12 or higher:** This plugin is designed to work with Obsidian versions 0.9.12 and above.
+1. **Gemini API Key:** You need a valid API key from Google AI Studio. You can obtain one for free (within usage limits) at [https://makersuite.google.com/app/apikey](https://makersuite.google.com/app/apikey).
+2. **Obsidian v0.9.12 or higher:** This plugin is designed to work with Obsidian versions 0.9.12 and above.
 
 ## Installation
 
 ### From within Obsidian
 
-1.  Open Obsidian Settings (`Ctrl+,` or `Cmd+,`).
-2.  Go to **Community plugins**.
-3.  Click **Browse** to search community plugins.
-4.  Search for "Gemini Copilot".
-5.  Click **Install**.
-6.  After installation, go to the **Installed plugins** tab and enable the "Gemini Copilot" plugin.
+1. Open Obsidian Settings (`Ctrl+,` or `Cmd+,`).
+2. Go to **Community plugins**.
+3. Click **Browse** to search community plugins.
+4. Search for "Gemini Copilot".
+5. Click **Install**.
+6. After installation, go to the **Installed plugins** tab and enable the "Gemini Copilot" plugin.
 
 ### Manual Installation
 
-1.  Download the latest release from [Releases](https://github.com/ikpark09/obsidian-gemini-copilot/releases) page.
-2.  Extract the downloaded ZIP file to your Obsidian vault's plugins folder: `<your_vault>/.obsidian/plugins/obsidian-gemini-copilot`.
-    *   **Note:** Make sure to create the `obsidian-gemini-copilot` folder if it doesn't exist.
-3.  In Obsidian, go to **Settings** -> **Community plugins** and enable the "Gemini Copilot" plugin.
+1. Download the latest release from [Releases](https://github.com/ikpark09/obsidian-gemini-copilot/releases) page.
+2. Extract the downloaded ZIP file to your Obsidian vault's plugins folder: `<your_vault>/.obsidian/plugins/obsidian-gemini-copilot`.
+   * **Note:** Make sure to create the `obsidian-gemini-copilot` folder if it doesn't exist.
+3. In Obsidian, go to **Settings** -> **Community plugins** and enable the "Gemini Copilot" plugin.
 
 ## Usage
 
+### Quick Access Menu
+
+Click the Gemini Copilot ribbon icon (✨) in the left sidebar to access a menu with all plugin features:
+
+* Generate note title
+* Summarize selected text
+* Expand selected text
+* Add hashtags to current note
+* Run custom prompt
+* Generate knowledge graph
+* Find related documents
+* Open settings
+
 ### Generate Note Title
 
-1.  Open the note for which you want to generate a title.
-2.  Open the Command Palette (`Ctrl+P` or `Cmd+P`).
-3.  Type "Gemini: Generate Note Title" or "Generate Note Title with Gemini" and select the command.
-4.  A modal will appear showing the title suggested by Gemini in `YYYY-MM-DD : Title` format.
-5.  Click **Confirm** to apply the title and rename the note, or click **Cancel** to discard the suggestion.
+1. Open the note for which you want to generate a title.
+2. Click the Gemini Copilot ribbon icon and select "노트 제목 생성".
+   * Alternatively, open the Command Palette (`Ctrl+P` or `Cmd+P`) and select "Generate Note Title with Gemini".
+3. A modal will appear showing the title suggested by Gemini in `YYYY-MM-DD : Title` format.
+4. Click **Confirm** to apply the title and rename the note, or click **Cancel** to discard the suggestion.
 
 ### Summarize Text
 
-1.  Select the text you want to summarize within your note.
-2.  Open the Command Palette (`Ctrl+P` or `Cmd+P`).
-3.  Type "Gemini: Summarize Selected Text" or "Summarize Selected Text with Gemini" and select the command.
-4.  A modal will appear showing the summary generated by Gemini.
-5.  Click **Confirm** to replace the selected text with the summary, or click **Cancel** to discard the suggestion.
+1. Select the text you want to summarize within your note.
+2. Click the Gemini Copilot ribbon icon and select "선택한 텍스트 요약".
+   * Alternatively, open the Command Palette and select "Summarize Selected Text with Gemini".
+3. A modal will appear showing the summary generated by Gemini.
+4. Click **Confirm** to replace the selected text with the summary, or click **Cancel** to discard.
 
 ### Expand Text
 
-1.  Select the text you want to expand upon in your note.
-2.  Open the Command Palette (`Ctrl+P` or `Cmd+P`).
-3.  Type "Gemini: Expand Selected Text" or "Expand Selected Text with Gemini" and select the command.
-4.  A modal will appear showing the expanded text generated by Gemini.
-5.  Click **Confirm** to append the expanded text to your selection, or click **Cancel** to discard the suggestion.
+1. Select the text you want to expand upon in your note.
+2. Click the Gemini Copilot ribbon icon and select "선택한 텍스트 확장".
+   * Alternatively, open the Command Palette and select "Expand Selected Text with Gemini".
+3. A modal will appear showing the expanded text generated by Gemini.
+4. Click **Confirm** to append the expanded text to your selection, or click **Cancel** to discard.
+
+### Generate Hashtags
+
+1. Open the note for which you want to generate hashtags.
+2. Click the Gemini Copilot ribbon icon and select "현재 노트에 해시태그 추가".
+   * Alternatively, open the Command Palette and select "Generate Hashtags for Current Note with Gemini".
+3. A modal will appear showing hashtags generated by Gemini.
+4. Click **Confirm** to add the hashtags to the top of your note, or click **Cancel** to discard.
+
+### Knowledge Graph
+
+#### Generate Knowledge Graph
+1. Click the Gemini Copilot ribbon icon and select "지식 그래프 생성".
+   * Alternatively, open the Command Palette and select "지식 그래프 생성하기".
+2. The plugin will analyze relationships between your notes.
+3. A summary modal will show the results, including total relationships discovered and most connected documents.
+
+#### Find Related Documents
+1. Open a note for which you want to find related documents.
+2. Click the Gemini Copilot ribbon icon and select "현재 문서의 관련 문서 찾기".
+   * Alternatively, open the Command Palette and select "현재 문서의 관련 문서 찾기".
+3. A modal will show documents related to your current note, with similarity scores.
+4. You can click on document names to open them, or click "위키링크 추가" to add wiki links to your current note.
+
+### Custom Prompts
+
+1. First, create custom prompts in the plugin settings.
+2. Select text in a note that you want to process with your custom prompt.
+3. Click the Gemini Copilot ribbon icon and select "커스텀 프롬프트 실행".
+4. Choose your custom prompt from the list.
+5. Review the generated content and click **Confirm** to apply it to your note.
 
 ## Settings
 
 Access the plugin settings in Obsidian Settings -> Community plugins -> Gemini Copilot.
 
-*   **Gemini API Key:** Enter your Gemini API key obtained from Google AI Studio. This is required for the plugin to function.
-*   **Gemini Model:** Choose the Gemini model you want to use for API calls. Available models are listed in the dropdown.
-*   **Gemini Interaction Log:** This section displays a history of your interactions with the Gemini API. It shows the timestamp, model used, input prompt, output response (truncated), and any errors that occurred. This log can be helpful for debugging or reviewing your usage.
+### Basic Settings
+* **Gemini API Key:** Enter your Gemini API key obtained from Google AI Studio.
+* **Gemini Model:** Choose the Gemini model to use (e.g., gemini-pro, gemini-2.0-pro).
+* **Default New File Location:** Set where new files created by the plugin should be saved.
+
+### Prompt Template Settings
+Customize prompt templates for each plugin feature:
+* **노트 제목 생성 프롬프트:** Customize the prompt used to generate note titles.
+* **텍스트 요약 프롬프트:** Customize the prompt used to summarize text.
+* **텍스트 확장 프롬프트:** Customize the prompt used to expand text.
+* **해시태그 생성 프롬프트:** Customize the prompt used to generate hashtags.
+* **핵심 개념 추출 프롬프트:** Customize the prompt used to extract key concepts for knowledge graph generation.
+* **문서 관계 분석 프롬프트:** Customize the prompt used to analyze relationships between documents.
+
+Each template can use specific variables:
+* `{{content}}` - The selected text or note content
+* `{{currentTitle}}` - The current note's title (for title generation)
+* `{{sourceTitle}}`, `{{sourceConcepts}}`, `{{targetTitle}}`, `{{targetConcepts}}` - Variables for document relation analysis
+
+Each prompt template has a "기본값으로 초기화" (Reset to Default) button to restore the default prompt.
+
+### Knowledge Graph Settings
+* **지식 그래프 활성화:** Enable or disable the knowledge graph feature.
+* **최소 유사도 점수:** Set the minimum similarity score (0.1-0.9) required to create relationships between documents.
+* **문서당 최대 링크 수:** Set the maximum number of links to create per document (1-10).
+* **자동으로 링크 추가:** Automatically add wiki links to documents based on analyzed relationships.
+
+### Custom Prompts
+Create and manage custom prompts with:
+* **Name:** A name for your custom prompt
+* **Description:** A description of what the prompt does
+* **Prompt Content:** The actual prompt text (use `{{content}}` to include selected text)
+
+### Gemini Interaction Log
+View your recent interactions with the Gemini API, including:
+* Timestamp
+* Model used
+* Input prompt
+* Output response
+* Any errors that occurred
 
 ## Disclaimer
 
-*   This plugin utilizes the Google Gemini API. Please be aware of Google's API usage terms and conditions, including any potential costs associated with API usage beyond free limits.
-*   The accuracy and relevance of the generated content depend on the Gemini API and the quality of your note content. Always review and edit the AI-generated output to ensure it meets your needs.
-*   As with any AI-powered tool, results may vary.
+* This plugin utilizes the Google Gemini API. Please be aware of Google's API usage terms and conditions, including any potential costs associated with API usage beyond free limits.
+* The accuracy and relevance of the generated content depend on the Gemini API and the quality of your note content. Always review and edit the AI-generated output to ensure it meets your needs.
+* As with any AI-powered tool, results may vary.
 
 ## Support and Contribution
 
@@ -85,7 +169,7 @@ Contributions are welcome! Feel free to fork the repository, make changes, and s
 
 ## License
 
-[MIT License](LICENSE) (You can add your license file and update this section accordingly)
+[MIT License](LICENSE)
 
 ---
 
