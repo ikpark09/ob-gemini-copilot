@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-gemini-copilot",
+	"name": "gemini-copilot",
 	"version": "1.0.0",
-	"description": "Obsidian plugin that integrates with Google's Gemini API to provide AI-powered writing assistance directly within your vault.",
+	"description": "Integrates with Google's Gemini API to provide AI-powered writing assistance directly within your vault.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",

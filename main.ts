@@ -103,11 +103,52 @@ export default class GeminiCopilotPlugin extends Plugin {
             menu.addItem((item) => {
                 item.setTitle('노트 제목 생성')
                     .setIcon('heading')
-                    .onClick(() => {
+                    .onClick(async () => {
                         const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
                         if (activeView) {
-                            // 기존 명령어 실행 로직 호출
-                            this.app.commands.executeCommandById('gemini-generate-note-title');
+                            const content = activeView.editor.getValue();
+                            if (!content) {
+                                new Notice('노트 내용이 비어있습니다.');
+                                return;
+                            }
+
+                            try {
+                                const suggestedTitle = await this.generateNoteTitle(content, activeView.file?.basename);
+                                if (!suggestedTitle) {
+                                    new Notice('제목 생성에 실패했습니다.');
+                                    return;
+                                }
+
+                                new GeminiConfirmationModal(this.app, suggestedTitle, async (confirmedTitle) => {
+                                    if (!confirmedTitle) return; // 사용자가 취소함
+
+                                    let newFileName = this.sanitizeFilename(confirmedTitle.trim());
+                                    const creationDate = new Date().toISOString().slice(0, 10);
+                                    const finalFileName = `${creationDate} - ${newFileName}`;
+
+                                    if (activeView.file) {
+                                        // 기존 파일 이름 변경
+                                        const originalFilePath = activeView.file.path;
+                                        const dirPath = activeView.file.parent ? activeView.file.parent.path : "";
+                                        const newFilePath = dirPath ? `${dirPath}/${finalFileName}.${activeView.file.extension}` : `${finalFileName}.${activeView.file.extension}`;
+
+                                        try {
+                                            await this.app.fileManager.renameFile(activeView.file, newFilePath);
+                                            new Notice(`노트 제목이 다음으로 변경되었습니다: ${finalFileName}`);
+                                        } catch (error) {
+                                            console.error('파일 이름 변경 오류:', error);
+                                            new Notice(`파일 이름 변경 오류: ${error.message}`);
+                                        }
+                                    } else {
+                                        // 신규 파일 생성
+                                        this.createNewFileWithTitle(content, finalFileName);
+                                    }
+                                }).open();
+
+                            } catch (error) {
+                                console.error('노트 제목 생성 오류:', error);
+                                new Notice('노트 제목 생성 중 오류가 발생했습니다.');
+                            }
                         } else {
                             new Notice('노트가 열려있지 않습니다.');
                         }
@@ -118,10 +159,26 @@ export default class GeminiCopilotPlugin extends Plugin {
             menu.addItem((item) => {
                 item.setTitle('선택한 텍스트 요약')
                     .setIcon('align-justify')
-                    .onClick(() => {
+                    .onClick(async () => {
                         const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
                         if (activeView && activeView.editor.getSelection()) {
-                            this.app.commands.executeCommandById('gemini-summarize-text');
+                            const selectedText = activeView.editor.getSelection();
+                            try {
+                                const suggestedSummary = await this.summarizeText(selectedText);
+                                if (suggestedSummary) {
+                                    new GeminiConfirmationModal(this.app, suggestedSummary, async (confirmedSummary) => {
+                                        if (confirmedSummary) {
+                                            activeView.editor.replaceSelection(confirmedSummary);
+                                            new Notice('선택한 텍스트가 요약되어 대체되었습니다.');
+                                        }
+                                    }).open();
+                                } else {
+                                    new Notice('텍스트 요약에 실패했습니다.');
+                                }
+                            } catch (error) {
+                                console.error('텍스트 요약 오류:', error);
+                                new Notice('텍스트 요약 중 오류가 발생했습니다.');
+                            }
                         } else {
                             new Notice('텍스트를 선택해 주세요.');
                         }
@@ -132,10 +189,26 @@ export default class GeminiCopilotPlugin extends Plugin {
             menu.addItem((item) => {
                 item.setTitle('선택한 텍스트 확장')
                     .setIcon('expand-vertically')
-                    .onClick(() => {
+                    .onClick(async () => {
                         const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
                         if (activeView && activeView.editor.getSelection()) {
-                            this.app.commands.executeCommandById('gemini-expand-text');
+                            const selectedText = activeView.editor.getSelection();
+                            try {
+                                const suggestedExpansion = await this.generateAdditionalText(selectedText);
+                                if (suggestedExpansion) {
+                                    new GeminiConfirmationModal(this.app, suggestedExpansion, async (confirmedExpansion) => {
+                                        if (confirmedExpansion) {
+                                            activeView.editor.replaceSelection(selectedText + '\n\n' + confirmedExpansion);
+                                            new Notice('선택한 텍스트가 확장되어 추가되었습니다.');
+                                        }
+                                    }).open();
+                                } else {
+                                    new Notice('텍스트 확장에 실패했습니다.');
+                                }
+                            } catch (error) {
+                                console.error('텍스트 확장 오류:', error);
+                                new Notice('텍스트 확장 중 오류가 발생했습니다.');
+                            }
                         } else {
                             new Notice('텍스트를 선택해 주세요.');
                         }
@@ -146,10 +219,33 @@ export default class GeminiCopilotPlugin extends Plugin {
             menu.addItem((item) => {
                 item.setTitle('현재 노트에 해시태그 추가')
                     .setIcon('hash')
-                    .onClick(() => {
+                    .onClick(async () => {
                         const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
                         if (activeView) {
-                            this.app.commands.executeCommandById('gemini-generate-hashtags-current-note');
+                            const content = activeView.editor.getValue();
+                            if (!content) {
+                                new Notice('노트 내용이 비어있습니다.');
+                                return;
+                            }
+
+                            try {
+                                const suggestedHashtags = await this.generateHashtags(content);
+                                if (suggestedHashtags && activeView.file) {
+                                    new GeminiConfirmationModal(this.app, suggestedHashtags, async (confirmedHashtags) => {
+                                        if (confirmedHashtags) {
+                                            // 해시태그를 파일 상단에 추가
+                                            const newContent = `${confirmedHashtags}\n${content}`;
+                                            await this.app.vault.modify(activeView.file!, newContent);
+                                            new Notice('현재 노트에 해시태그가 추가되었습니다.');
+                                        }
+                                    }).open();
+                                } else {
+                                    new Notice('해시태그 생성에 실패했습니다.');
+                                }
+                            } catch (error) {
+                                console.error('해시태그 생성 오류:', error);
+                                new Notice('해시태그 생성 중 오류가 발생했습니다.');
+                            }
                         } else {
                             new Notice('노트가 열려있지 않습니다.');
                         }
@@ -163,7 +259,44 @@ export default class GeminiCopilotPlugin extends Plugin {
                     .onClick(() => {
                         const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
                         if (activeView) {
-                            this.app.commands.executeCommandById('gemini-run-custom-prompt');
+                            if (this.settings.customPrompts.length === 0) {
+                                new Notice('설정에 정의된 커스텀 프롬프트가 없습니다.');
+                                return;
+                            }
+
+                            const selectedText = activeView.editor.getSelection();
+                            if (!selectedText) {
+                                new Notice('텍스트를 선택해 주세요.');
+                                return;
+                            }
+
+                            // 프롬프트 선택 모달 표시
+                            const promptSelector = new CustomPromptSelectorModal(this.app, this.settings.customPrompts, 
+                                async (selectedPrompt: CustomPrompt | null) => {
+                                    if (!selectedPrompt) return;
+
+                                    try {
+                                        // {{content}}를 선택한 텍스트로 대체
+                                        const fullPrompt = selectedPrompt.prompt.replace('{{content}}', selectedText);
+                                        const result = await this.generateContent(fullPrompt);
+                                        
+                                        if (result.text) {
+                                            new GeminiConfirmationModal(this.app, result.text, async (confirmedText) => {
+                                                if (confirmedText) {
+                                                    activeView.editor.replaceSelection(confirmedText);
+                                                    new Notice(`"${selectedPrompt.name}" 프롬프트가 적용되었습니다.`);
+                                                }
+                                            }).open();
+                                        } else {
+                                            new Notice(`"${selectedPrompt.name}" 프롬프트 처리에 실패했습니다.`);
+                                        }
+                                    } catch (error) {
+                                        console.error('커스텀 프롬프트 실행 오류:', error);
+                                        new Notice('커스텀 프롬프트 실행 중 오류가 발생했습니다.');
+                                    }
+                                }
+                            );
+                            promptSelector.open();
                         } else {
                             new Notice('노트가 열려있지 않습니다.');
                         }
@@ -179,8 +312,9 @@ export default class GeminiCopilotPlugin extends Plugin {
                 menu.addItem((item) => {
                     item.setTitle('지식 그래프 생성')
                         .setIcon('network')
-                        .onClick(() => {
-                            this.app.commands.executeCommandById('gemini-generate-knowledge-graph');
+                        .onClick(async () => {
+                            new Notice('지식 그래프 분석을 시작합니다. 문서 수에 따라 시간이 소요될 수 있습니다.');
+                            await this.generateKnowledgeGraph();
                         });
                 });
                 
@@ -188,10 +322,24 @@ export default class GeminiCopilotPlugin extends Plugin {
                 menu.addItem((item) => {
                     item.setTitle('현재 문서의 관련 문서 찾기')
                         .setIcon('search')
-                        .onClick(() => {
+                        .onClick(async () => {
                             const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-                            if (activeView) {
-                                this.app.commands.executeCommandById('gemini-find-related-documents');
+                            if (activeView && activeView.file) {
+                                const content = activeView.editor.getValue();
+                                if (!content) {
+                                    new Notice('문서 내용이 비어있습니다.');
+                                    return;
+                                }
+
+                                new Notice('관련 문서를 찾는 중입니다...');
+                                const relatedDocs = await this.findRelatedDocuments(activeView.file, content);
+                                
+                                if (relatedDocs.length === 0) {
+                                    new Notice('관련 문서를 찾지 못했습니다.');
+                                    return;
+                                }
+
+                                new RelatedDocumentsModal(this.app, relatedDocs, this).open();
                             } else {
                                 new Notice('노트가 열려있지 않습니다.');
                             }
@@ -255,8 +403,10 @@ export default class GeminiCopilotPlugin extends Plugin {
                         if (view.file) {
                             // Existing file: Rename
                             const originalFilePath = view.file.path;
-                            const originalDir = originalFilePath.substring(0, originalFilePath.lastIndexOf('/'));
-                            const newFilePath = `${originalDir}/${finalFileName}.${view.file.extension}`;
+                            // 원본 파일의 디렉토리 경로를 추출, 파일이 루트에 있는 경우 빈 문자열이 됨
+                            const dirPath = view.file.parent ? view.file.parent.path : "";
+                            // 디렉토리 경로가 있으면 경로 구분자를 추가하여 새 파일 경로 작성
+                            const newFilePath = dirPath ? `${dirPath}/${finalFileName}.${view.file.extension}` : `${finalFileName}.${view.file.extension}`;
 
                             console.log("Original File Path:", originalFilePath);
                             console.log("Creation Date:", creationDate);
@@ -285,27 +435,21 @@ export default class GeminiCopilotPlugin extends Plugin {
                             {
                                 // Try to get the path of the currently active file
                                 const activeFile = this.app.workspace.getActiveFile();
-                                if (activeFile)
-                                {
-                                    if (activeFile.parent) { // Check if parent exists
-                                        const activeDir = activeFile.parent.path; // Get path of active file's directory
-                                        newFilePath = `${activeDir}/${finalFileName}.md`; // Use active note's folder
-                                    } else {
-                                        // activeFile is in the root folder
-                                        newFilePath = `${finalFileName}.md`;
-                                        new Notice("Active file is in the root folder. New note will be created in the root.");
-                                    }
+                                if (activeFile && activeFile.parent) { // Check if activeFile and parent exists
+                                    const activeDir = activeFile.parent.path; // Get path of active file's directory
+                                    newFilePath = `${activeDir}/${finalFileName}.md`; // Use active note's folder
+                                } else {
+                                    // activeFile is in the root folder or doesn't exist
+                                    newFilePath = `${finalFileName}.md`;
+                                    new Notice("New note will be created in the root folder.");
                                 }
-                                else
-                                {
-                                     newFilePath = `${finalFileName}.md`; // Default: Vault root, add .md extension
-                                     new Notice("No active file found. New note will created in root");
-                                }
-
                             }
-                            else // specific folder
-                            {
-                                 newFilePath = `${this.settings.defaultNewFileLocation}/${finalFileName}.md`
+                            else if (this.settings.defaultNewFileLocation) { // 특정 폴더가 설정된 경우
+                                newFilePath = `${this.settings.defaultNewFileLocation}/${finalFileName}.md`;
+                            } else {
+                                // 설정이 제대로 되지 않은 경우 기본값으로 루트 사용
+                                newFilePath = `${finalFileName}.md`;
+                                console.warn("Invalid newFileLocation setting, using root folder");
                             }
 
                             console.log("New File Path:", newFilePath);
@@ -854,6 +998,48 @@ export default class GeminiCopilotPlugin extends Plugin {
         }
         
         new Notice(`${processedFiles.size}개 문서에 관련 링크가 추가되었습니다.`);
+    }
+
+    // 새 파일 생성을 위한 헬퍼 메서드 추가
+    private async createNewFileWithTitle(content: string, finalFileName: string): Promise<void> {
+        // 기본 새 파일 위치 설정에서 가져오기
+        let newFilePath = '';
+        if(this.settings.defaultNewFileLocation === 'root') {
+            newFilePath = `${finalFileName}.md`; // 기본값: 볼트 루트, .md 확장자 추가
+        }
+        else if (this.settings.defaultNewFileLocation === 'current') {
+            // 현재 활성화된 파일의 경로 가져오기 시도
+            const activeFile = this.app.workspace.getActiveFile();
+            if (activeFile && activeFile.parent) {
+                const activeDir = activeFile.parent.path; // 활성화된 파일의 디렉토리 경로 가져오기
+                newFilePath = `${activeDir}/${finalFileName}.md`; // 활성화된 노트의 폴더 사용
+            } else {
+                // activeFile이 루트 폴더에 있거나 존재하지 않음
+                newFilePath = `${finalFileName}.md`;
+                new Notice("새 노트가 루트 폴더에 생성됩니다.");
+            }
+        }
+        else if (this.settings.defaultNewFileLocation) { // 특정 폴더가 설정된 경우
+            newFilePath = `${this.settings.defaultNewFileLocation}/${finalFileName}.md`;
+        } else {
+            // 설정이 제대로 되지 않은 경우 기본값으로 루트 사용
+            newFilePath = `${finalFileName}.md`;
+            console.warn("잘못된 newFileLocation 설정, 루트 폴더 사용");
+        }
+
+        console.log("새 파일 경로:", newFilePath);
+
+        try {
+            // 새 파일 생성
+            const newFile = await this.app.vault.create(newFilePath, content);
+            new Notice(`새 노트 생성됨: ${finalFileName}`);
+
+            // 새 파일을 새 창에서 열기
+            await this.app.workspace.getLeaf(true).openFile(newFile);
+        } catch (error) {
+            console.error('새 파일 생성 오류:', error);
+            new Notice(`파일 생성 오류: ${error.message}`);
+        }
     }
 }
 
