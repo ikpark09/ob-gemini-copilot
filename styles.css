@@ -1,4 +1,4 @@
-/* Gemini Copilot Plugin 스타일 */
+/* Gemini Copilot 스타일 */
 
 /* 관련 문서 목록 스타일 */
 .related-document-list {
@@ -30,7 +30,7 @@
   margin-top: 8px;
 }
 
-/* 모달 컴포넌트 스타일 */
+/* 모달 버튼 컨테이너 */
 .modal-button-container {
   margin-top: 16px;
   display: flex;
