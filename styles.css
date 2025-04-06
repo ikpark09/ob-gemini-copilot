@@ -25,6 +25,10 @@
   color: var(--text-muted);
 }
 
+.related-document-context {
+  margin-top: 4px;
+}
+
 .related-document-add-link {
   font-size: 0.8em;
   margin-top: 8px;
@@ -60,7 +64,7 @@
   background-color: var(--background-secondary);
 }
 
-.knowledge-graph-table td:last-child {
+.text-right {
   text-align: right;
 }
 
@@ -129,4 +133,70 @@
   height: 120px;
   font-family: monospace;
   font-size: 12px;
+}
+
+/* 설정 변수 목록 */
+.settings-variables-list {
+  margin-bottom: 10px;
+}
+
+/* 추가 스타일 - 인라인 스타일 마이그레이션 */
+.graph-summary-title {
+  margin: 0;
+}
+
+.graph-summary-section-title {
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+.muted-text {
+  color: var(--text-muted);
+}
+
+.gemini-setting-textarea {
+  width: 100%;
+  height: 120px;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.gemini-log-item {
+  margin-bottom: 10px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.centered-text {
+  text-align: center;
+}
+
+.meta-text {
+  font-size: smaller;
+  color: var(--text-muted);
+}
+
+.confirmation-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.error-text {
+  color: var(--color-red);
+}
+
+.italics {
+  font-style: italic;
+}
+
+.log-section {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--background-modifier-border);
+  padding: 10px;
+  border-radius: 5px;
 }
