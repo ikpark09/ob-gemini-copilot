@@ -1,8 +1,132 @@
-/*
+/* Gemini Copilot Plugin 스타일 */
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+/* 관련 문서 목록 스타일 */
+.related-document-list {
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+}
 
-If your plugin does not need CSS, delete this file.
+.related-document-item {
+  margin: 8px 0;
+  padding: 8px;
+  border-radius: 5px;
+  background-color: var(--background-secondary);
+}
 
-*/
+.related-document-title {
+  margin: 0 0 4px;
+  cursor: pointer;
+  color: var(--text-accent);
+}
+
+.related-document-score {
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+.related-document-add-link {
+  font-size: 0.8em;
+  margin-top: 8px;
+}
+
+/* 모달 컴포넌트 스타일 */
+.modal-button-container {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* 지식 그래프 분석 모달 스타일 */
+.knowledge-graph-container {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.knowledge-graph-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.knowledge-graph-table th, 
+.knowledge-graph-table td {
+  padding: 4px 8px;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.knowledge-graph-table th {
+  text-align: left;
+  background-color: var(--background-secondary);
+}
+
+.knowledge-graph-table td:last-child {
+  text-align: right;
+}
+
+.knowledge-graph-more-row {
+  text-align: center;
+  font-style: italic;
+}
+
+/* 로그 컨테이너 스타일 */
+.gemini-log-container {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--background-modifier-border);
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.gemini-log-entry {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.gemini-log-timestamp {
+  font-size: smaller;
+  color: var(--text-muted);
+}
+
+.gemini-log-error {
+  color: var(--color-red);
+}
+
+/* 결과 확인 모달 스타일 */
+.gemini-result-container {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--background-modifier-border);
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 16px;
+}
+
+/* 커스텀 프롬프트 목록 스타일 */
+.custom-prompt-list {
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+}
+
+.custom-prompt-item {
+  margin: 8px 0;
+  padding: 12px;
+  border-radius: 5px;
+  background-color: var(--background-secondary);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.custom-prompt-item:hover {
+  background-color: var(--background-secondary-alt);
+}
+
+/* 텍스트 영역 스타일 */
+.prompt-template-textarea {
+  width: 100%;
+  height: 120px;
+  font-family: monospace;
+  font-size: 12px;
+}
