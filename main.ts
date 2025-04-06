@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, Setting, TFile, Menu, TextAreaComponent } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, Setting, TFile, Menu } from 'obsidian';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { RelatedDocumentsModal, KnowledgeGraphSummaryModal, GeminiConfirmationModal, CustomPromptSelectorModal } from './modals';
 import { GeminiCopilotSettingTab } from './settings-tab';
@@ -97,9 +97,6 @@ export default class GeminiCopilotPlugin extends Plugin {
         await this.loadSettings();
         this.initializeGeminiAPI();
 
-        // 스타일시트 로드
-        this.loadStyles();
-
         this.addRibbonIcon('sparkles', 'Gemini Copilot', (evt: MouseEvent) => {
             // 메뉴 생성 및 표시
             const menu = new Menu();
@@ -142,7 +139,7 @@ export default class GeminiCopilotPlugin extends Plugin {
                                             new Notice(`노트 제목이 다음으로 변경되었습니다: ${finalFileName}`);
                                         } catch (error) {
                                             console.error('파일 이름 변경 오류:', error);
-                                            new Notice(`파일 이름 변경 오류: ${error.message}`);
+                                            new Notice(`파일 이름 변경 오류: ${error instanceof Error ? error.message : String(error)}`);
                                         }
                                     } else {
                                         // 신규 파일 생성
@@ -179,7 +176,7 @@ export default class GeminiCopilotPlugin extends Plugin {
             id: 'gemini-generate-note-title',
             name: 'Generate Note Title with Gemini',
             editorCallback: async (editor: Editor, view: MarkdownView) => {
-                // 내용 생략...
+                // 내용 생략..
             }
         });
 
@@ -188,11 +185,11 @@ export default class GeminiCopilotPlugin extends Plugin {
             id: 'gemini-summarize-text',
             name: 'Summarize Selected Text with Gemini',
             editorCallback: async (editor: Editor, view: MarkdownView) => {
-                // 내용 생략...
+                // 내용 생략..
             }
         });
 
-        // 기타 명령어...
+        // 기타 명령어들...
     }
 
     onunload() {
@@ -206,122 +203,6 @@ export default class GeminiCopilotPlugin extends Plugin {
     async saveSettings() {
         await this.saveData(this.settings);
         this.initializeGeminiAPI();
-    }
-
-    // 스타일시트 로드 메서드
-    private loadStyles() {
-        const styleEl = document.head.querySelector('style#gemini-copilot-styles');
-        if (!styleEl) {
-            document.head.appendChild(createEl('style', {
-                attr: { id: 'gemini-copilot-styles' },
-                text: `.related-document-list {
-                    margin: 0;
-                    padding: 0;
-                    list-style-type: none;
-                }
-                .related-document-item {
-                    margin: 8px 0;
-                    padding: 8px;
-                    border-radius: 5px;
-                    background-color: var(--background-secondary);
-                }
-                .related-document-title {
-                    margin: 0 0 4px;
-                    cursor: pointer;
-                    color: var(--text-accent);
-                }
-                .related-document-score {
-                    font-size: 0.8em;
-                    color: var(--text-muted);
-                }
-                .related-document-add-link {
-                    font-size: 0.8em;
-                    margin-top: 8px;
-                }
-                .modal-button-container {
-                    margin-top: 16px;
-                    display: flex;
-                    justify-content: flex-end;
-                    gap: 8px;
-                }
-                .knowledge-graph-container {
-                    max-height: 400px;
-                    overflow-y: auto;
-                }
-                .knowledge-graph-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                }
-                .knowledge-graph-table th, 
-                .knowledge-graph-table td {
-                    padding: 4px 8px;
-                    border: 1px solid var(--background-modifier-border);
-                }
-                .knowledge-graph-table th {
-                    text-align: left;
-                    background-color: var(--background-secondary);
-                }
-                .text-right {
-                    text-align: right;
-                }
-                .knowledge-graph-more-row {
-                    text-align: center;
-                    font-style: italic;
-                }
-                .gemini-log-container {
-                    max-height: 300px;
-                    overflow-y: auto;
-                    border: 1px solid var(--background-modifier-border);
-                    padding: 10px;
-                    border-radius: 5px;
-                }
-                .gemini-log-entry {
-                    margin-bottom: 10px;
-                    padding-bottom: 10px;
-                    border-bottom: 1px solid var(--background-modifier-border);
-                }
-                .gemini-log-timestamp {
-                    font-size: smaller;
-                    color: var(--text-muted);
-                }
-                .gemini-log-error {
-                    color: var(--color-red);
-                }
-                .gemini-result-container {
-                    max-height: 300px;
-                    overflow-y: auto;
-                    border: 1px solid var(--background-modifier-border);
-                    padding: 10px;
-                    border-radius: 5px;
-                    margin-bottom: 16px;
-                }
-                .custom-prompt-list {
-                    margin: 0;
-                    padding: 0;
-                    list-style-type: none;
-                }
-                .custom-prompt-item {
-                    margin: 8px 0;
-                    padding: 12px;
-                    border-radius: 5px;
-                    background-color: var(--background-secondary);
-                    cursor: pointer;
-                    transition: background-color 0.2s;
-                }
-                .custom-prompt-item:hover {
-                    background-color: var(--background-secondary-alt);
-                }
-                .prompt-template-textarea {
-                    width: 100%;
-                    height: 120px;
-                    font-family: monospace;
-                    font-size: 12px;
-                }
-                .settings-variables-list {
-                    margin-bottom: 10px;
-                }`
-            }));
-        }
     }
 
     private initializeGeminiAPI() {
@@ -358,9 +239,9 @@ export default class GeminiCopilotPlugin extends Plugin {
             this.logGeminiInteraction(logEntry);
             return { text: responseText };
 
-        } catch (error: any) {
+        } catch (error) {
             console.error('Gemini API Error:', error);
-            logEntry.error = error.message;
+            logEntry.error = error instanceof Error ? error.message : String(error);
             this.logGeminiInteraction(logEntry);
             new Notice('Gemini API call failed. See console for details.');
             return { text: null };
@@ -374,7 +255,7 @@ export default class GeminiCopilotPlugin extends Plugin {
     }
 
     sanitizeFilename(filename: string): string {
-        const invalidCharsRegex = /[*"\\/<>:|?]/g;
+        const invalidCharsRegex = /[*"\\\/<>:|?]/g;
         return filename.replace(invalidCharsRegex, '_');
     }
 
@@ -654,7 +535,7 @@ export default class GeminiCopilotPlugin extends Plugin {
             await this.app.workspace.getLeaf(true).openFile(newFile);
         } catch (error) {
             console.error('새 파일 생성 오류:', error);
-            new Notice(`파일 생성 오류: ${error.message}`);
+            new Notice(`파일 생성 오류: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 }
