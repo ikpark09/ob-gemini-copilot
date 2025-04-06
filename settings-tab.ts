@@ -1,6 +1,7 @@
-import { App, Notice, PluginSettingTab, Setting, TextAreaComponent } from 'obsidian';
-import { CustomPromptModal } from './custom-prompt-modal';
-import { GeminiCopilotPlugin, GeminiLogEntry, DEFAULT_SETTINGS } from './main';
+import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
+import GeminiCopilotPlugin from './main';
+import { CustomPrompt, DEFAULT_SETTINGS } from './main';
+import { CustomPromptModal } from './modals';
 
 export class GeminiCopilotSettingTab extends PluginSettingTab {
     plugin: GeminiCopilotPlugin;
@@ -57,7 +58,7 @@ export class GeminiCopilotSettingTab extends PluginSettingTab {
         containerEl.createEl('h3', { text: '프롬프트 템플릿 설정' });
         containerEl.createEl('p', { 
             text: '각 기능의 프롬프트 템플릿을 수정할 수 있습니다. 다음 변수를 사용할 수 있습니다:',
-            cls: 'setting-item-description'
+            cls: 'settings-variables-list'
         });
         
         const variablesList = containerEl.createEl('ul');
@@ -240,6 +241,7 @@ export class GeminiCopilotSettingTab extends PluginSettingTab {
                 if (logEntry.error) {
                     entryEl.createEl('p', { text: `Error: ${logEntry.error}`, cls: 'gemini-log-error' });
                 }
+                containerEl.createEl('hr');
             });
         }
     }
@@ -254,21 +256,26 @@ export class GeminiCopilotSettingTab extends PluginSettingTab {
         // 점으로 구분된 경로로부터 실제 설정 값을 가져오는 함수
         const getNestedSettingValue = (obj: Record<string, unknown>, path: string): string => {
             const parts = path.split('.');
-            let current = obj;
+            let current: Record<string, unknown> | unknown = obj;
             for (const part of parts) {
-                if (current[part] === undefined) return '';
-                current = current[part] as Record<string, unknown>;
+                if (current && typeof current === 'object' && part in current) {
+                    current = (current as Record<string, unknown>)[part];
+                } else {
+                    return '';
+                }
             }
-            return current as unknown as string;
+            return current as string;
         };
 
         // 점으로 구분된 경로에 설정 값을 저장하는 함수
         const setNestedSettingValue = (obj: Record<string, unknown>, path: string, value: string): void => {
             const parts = path.split('.');
-            let current = obj;
+            let current: Record<string, unknown> = obj;
             for (let i = 0; i < parts.length - 1; i++) {
                 const part = parts[i];
-                if (current[part] === undefined) current[part] = {};
+                if (!(part in current)) {
+                    current[part] = {};
+                }
                 current = current[part] as Record<string, unknown>;
             }
             current[parts[parts.length - 1]] = value;
@@ -277,22 +284,26 @@ export class GeminiCopilotSettingTab extends PluginSettingTab {
         const setting = new Setting(containerEl)
             .setName(name)
             .setDesc(desc)
-            .addTextArea((textarea: TextAreaComponent) => {
-                textarea
-                    .setValue(getNestedSettingValue(this.plugin.settings, settingPath))
-                    .onChange(async (value) => {
-                        setNestedSettingValue(this.plugin.settings, settingPath, value);
-                        await this.plugin.saveSettings();
-                    });
-                textarea.inputEl.addClass("prompt-template-textarea");
-            });
+            .addTextArea(textarea => textarea
+                .setValue(getNestedSettingValue(this.plugin.settings as Record<string, unknown>, settingPath))
+                .onChange(async (value) => {
+                    setNestedSettingValue(this.plugin.settings as Record<string, unknown>, settingPath, value);
+                    await this.plugin.saveSettings();
+                })
+            );
+
+        // 텍스트 영역에 CSS 클래스 적용
+        const textareaComponent = setting.components[0];
+        if (textareaComponent && textareaComponent.inputEl) {
+            textareaComponent.inputEl.addClass('prompt-template-textarea');
+        }
 
         // 기본값으로 초기화 버튼 추가
         setting.addButton(button => button
             .setButtonText('기본값으로 초기화')
             .onClick(async () => {
-                const defaultValue = getNestedSettingValue(DEFAULT_SETTINGS, settingPath);
-                setNestedSettingValue(this.plugin.settings, settingPath, defaultValue);
+                const defaultValue = getNestedSettingValue(DEFAULT_SETTINGS as Record<string, unknown>, settingPath);
+                setNestedSettingValue(this.plugin.settings as Record<string, unknown>, settingPath, defaultValue);
                 await this.plugin.saveSettings();
                 this.display(); // 설정 화면 새로고침
                 new Notice(`${name} 프롬프트가 기본값으로 초기화되었습니다.`);
